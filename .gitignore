@@ -10,3 +10,5 @@ dev.db-wal
 src/generated
 tsconfig.tsbuildinfo
 .DS_Store
+.vercel
+.env*
