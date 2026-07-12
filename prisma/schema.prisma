@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String           @id @default(cuid())
+  email     String           @unique
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  profile   UserProfile?
+  apiKey    UserApiKey?
+  sessions  Session[]
+  actions   UserNewsAction[]
+  insights  Insight[]
+  dailyRecommendations DailyRecommendation[]
+  dailyReports DailyReportArchive[]
+}
+
+model UserProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  userType     String
+  role         String
+  industry     String
+  aiLevel      String
+  goals        String
+  interestTags String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserApiKey {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  provider   String    @default("deepseek")
+  keyCipher  String
+  keyIv      String
+  keyTag     String
+  keyHint    String
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuthCode {
+  id        String    @id @default(cuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+}
+
+model NewsItem {
+  id            String           @id @default(cuid())
+  externalId    String           @unique
+  title         String
+  summary       String
+  source        String
+  publishedAt   DateTime
+  heatScore     Float            @default(0)
+  tags          String
+  url           String
+  raw           String?
+  lastFetchedAt DateTime         @default(now())
+  actions       UserNewsAction[]
+  insights      Insight[]
+  dailyRecommendations DailyRecommendation[]
+
+  @@index([publishedAt])
+}
+
+model UserNewsAction {
+  id         String   @id @default(cuid())
+  userId     String
+  newsItemId String
+  type       String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newsItem   NewsItem @relation(fields: [newsItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, newsItemId, type])
+  @@index([userId, type])
+}
+
+model Insight {
+  id              String   @id @default(cuid())
+  userId          String
+  newsItemId      String
+  provider        String
+  recommendReason String
+  workInsight     String
+  suggestedActions String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newsItem        NewsItem @relation(fields: [newsItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, newsItemId])
+}
+
+model DailyRecommendation {
+  id             String   @id @default(cuid())
+  userId         String
+  newsItemId     String
+  date           String
+  rank           Int
+  relevanceScore Int
+  scoreReasons   String
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newsItem       NewsItem @relation(fields: [newsItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, newsItemId])
+  @@unique([userId, date, rank])
+  @@index([userId, date])
+}
+
+model DailyReportArchive {
+  id          String   @id @default(cuid())
+  userId      String
+  date        String
+  report      String
+  generatedAt DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
